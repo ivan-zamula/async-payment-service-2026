@@ -1,7 +1,7 @@
 """Pydantic v2 schemas for the payment HTTP contract."""
 
 from decimal import Decimal
-from typing import Annotated, Literal, Self
+from typing import Annotated, Self
 from uuid import UUID
 
 from pydantic import (
@@ -50,7 +50,7 @@ class PaymentCreated(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     payment_id: UUID = Field(validation_alias=AliasChoices("payment_id", "id"))
-    status: Literal[PaymentStatus.PENDING] = PaymentStatus.PENDING
+    status: PaymentStatus = PaymentStatus.PENDING
     created_at: NaiveDatetime
 
 

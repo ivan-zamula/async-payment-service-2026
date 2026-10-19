@@ -8,7 +8,7 @@ import pytest
 from payment_service.app import create_app
 from payment_service.application import handlers
 from payment_service.application.repositories import PaymentRepository
-from payment_service.controllers.dependencies import get_payment_repository
+from payment_service.controllers.dependencies import get_payment_repository, get_unit_of_work
 
 
 TEST_API_KEY = "test-api-key"
@@ -34,7 +34,7 @@ def request(app, method, path, headers=None):
 
 
 @pytest.fixture
-def app(monkeypatch):
+def app(monkeypatch, unit_of_work):
     monkeypatch.setenv("API_KEY", TEST_API_KEY)
     app = create_app()
     repository = AsyncMock(spec=PaymentRepository)
@@ -43,7 +43,11 @@ def app(monkeypatch):
     async def override_repository():
         return repository
 
+    async def override_unit_of_work():
+        return unit_of_work
+
     app.dependency_overrides[get_payment_repository] = override_repository
+    app.dependency_overrides[get_unit_of_work] = override_unit_of_work
     return app
 
 
@@ -68,7 +72,7 @@ def test_invalid_credentials_do_not_reach_handlers(app, monkeypatch, method, api
     get.assert_not_awaited()
 
 
-@pytest.mark.parametrize("method,expected_status", [("POST", 501), ("GET", 404)])
+@pytest.mark.parametrize("method,expected_status", [("POST", 202), ("GET", 404)])
 def test_valid_credentials_reach_the_handler(app, method, expected_status):
     path = "/api/v1/payments" if method == "POST" else f"/api/v1/payments/{uuid4()}"
     response = request(app, method, path, {
@@ -90,12 +94,13 @@ def test_application_requires_a_configured_key(monkeypatch, api_key):
 def test_each_app_keeps_its_own_configured_key(app, monkeypatch):
     monkeypatch.setenv("API_KEY", "another-test-key")
     another_app = create_app()
+    another_app.dependency_overrides.update(app.dependency_overrides)
     path = "/api/v1/payments"
     headers = {"Idempotency-Key": "order-1", "X-API-Key": TEST_API_KEY}
-    assert request(app, "POST", path, headers).status_code == 501
+    assert request(app, "POST", path, headers).status_code == 202
     assert request(another_app, "POST", path, headers).status_code == 401
     headers["X-API-Key"] = "another-test-key"
-    assert request(another_app, "POST", path, headers).status_code == 501
+    assert request(another_app, "POST", path, headers).status_code == 202
 
 
 def test_query_parameter_cannot_replace_the_header(app):

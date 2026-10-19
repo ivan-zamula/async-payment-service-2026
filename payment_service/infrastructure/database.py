@@ -28,6 +28,7 @@ async def connect_database(
 ) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     engine = create_async_engine(
         database_url, pool_pre_ping=True, connect_args={"timeout": 5},
+        isolation_level="READ COMMITTED",
     )
     try:
         # Fail at startup if PostgreSQL is unavailable.

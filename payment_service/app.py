@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import SecretStr
 
-from payment_service.application.errors import PaymentNotFoundError
+from payment_service.application.errors import IdempotencyConflictError, PaymentNotFoundError
 from payment_service.controllers.routes import router
 from payment_service.infrastructure.database import connect_database, get_database_url
 
@@ -37,11 +37,11 @@ def create_app() -> FastAPI:
             content={"detail": "Payment not found"},
         )
 
-    @app.exception_handler(NotImplementedError)
-    async def not_implemented(request: Request, error: NotImplementedError) -> JSONResponse:
+    @app.exception_handler(IdempotencyConflictError)
+    async def idempotency_conflict(request: Request, error: IdempotencyConflictError) -> JSONResponse:
         return JSONResponse(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            content={"detail": "Payment handler is not implemented yet"},
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": "Idempotency key already used for a different payment"},
         )
 
     return app

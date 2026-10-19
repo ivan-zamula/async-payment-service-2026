@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, Header, status
 
 from payment_service.application import handlers
 from payment_service.application.repositories import PaymentRepository
+from payment_service.application.unit_of_work import UnitOfWork
 from payment_service.controllers.auth import verify_api_key
-from payment_service.controllers.dependencies import get_payment_repository
+from payment_service.controllers.dependencies import get_payment_repository, get_unit_of_work
 from payment_service.controllers.schemas import PaymentCreate, PaymentCreated, PaymentRead
 from payment_service.domain.entities import Payment
 
@@ -30,11 +31,12 @@ IdempotencyKey = Annotated[
 
 @router.post(
     "", response_model=PaymentCreated, status_code=status.HTTP_202_ACCEPTED,
-    responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Handler is not implemented"}},
+    responses={status.HTTP_409_CONFLICT: {"description": "Idempotency key reused with different data"}},
 )
 async def create_payment(
     payload: PaymentCreate,
     idempotency_key: IdempotencyKey,
+    unit_of_work: Annotated[UnitOfWork, Depends(get_unit_of_work)],
 ) -> Payment:
     payment = Payment(
         amount=payload.amount,
@@ -44,7 +46,7 @@ async def create_payment(
         webhook_url=str(payload.webhook_url),
         idempotency_key=idempotency_key,
     )
-    return await handlers.create_payment(payment)
+    return await handlers.create_payment(payment, unit_of_work)
 
 
 @router.get(

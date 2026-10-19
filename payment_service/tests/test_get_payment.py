@@ -62,4 +62,5 @@ def test_openapi_documents_get_responses(app_and_repository):
     responses = paths["/api/v1/payments/{payment_id}"]["get"]["responses"]
     assert {"200", "401", "404", "422"} <= responses.keys()
     assert "501" not in responses
-    assert "501" in paths["/api/v1/payments"]["post"]["responses"]
+    assert "409" in paths["/api/v1/payments"]["post"]["responses"]
+    assert "501" not in paths["/api/v1/payments"]["post"]["responses"]

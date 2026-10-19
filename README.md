@@ -1,7 +1,7 @@
 # Сервис обработки платежей
 
-Сервис платежей на FastAPI и PostgreSQL. Доступно получение платежа по ID.
-Создание платежа пока возвращает `501`.
+Сервис создает и хранит платежи в PostgreSQL вместе с событиями outbox.
+Отправка в RabbitMQ еще не подключена, платежи остаются в статусе `pending`.
 
 ## Запуск
 
@@ -34,6 +34,20 @@ Swagger: <http://127.0.0.1:8000/docs>. Подключение к БД задае
 ## API
 
 Для запросов нужен заголовок `X-API-Key`.
+
+Создание платежа:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/payments \
+  -H "X-API-Key: $API_KEY" \
+  -H 'Idempotency-Key: order-42' \
+  -H 'Content-Type: application/json' \
+  -d '{"amount":"123.45","currency":"RUB","description":"Order 42","metadata":{"order_id":42},"webhook_url":"https://example.com/hook"}'
+```
+
+Ответ: `202 Accepted` с полями `payment_id`, `status` и `created_at`.
+Повтор с тем же `Idempotency-Key` и данными вернет существующий платеж.
+Если данные отличаются, сервис вернет `409`.
 
 Получение платежа (замените UUID на `payment_id` из ответа):
 

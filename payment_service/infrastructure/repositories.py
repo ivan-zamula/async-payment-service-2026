@@ -1,14 +1,16 @@
 """SQLAlchemy implementation of the payment repository."""
 
 from copy import deepcopy
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from payment_service.application.repositories import PaymentRepository
+from payment_service.application.repositories import OutboxRepository, PaymentRepository
 from payment_service.domain.entities import Payment
-from payment_service.infrastructure.models import PaymentModel
+from payment_service.infrastructure.models import OutboxModel, PaymentModel
 
 
 class SQLAlchemyPaymentRepository(PaymentRepository):
@@ -16,20 +18,33 @@ class SQLAlchemyPaymentRepository(PaymentRepository):
         self._session = session
 
     async def add(self, payment: Payment) -> None:
-        self._session.add(PaymentModel(
-            id=payment.id,
-            amount=payment.amount,
-            currency=payment.currency,
-            description=payment.description,
-            metadata_=deepcopy(payment.metadata),
-            status=payment.status,
-            idempotency_key=payment.idempotency_key,
-            webhook_url=payment.webhook_url,
-            created_at=payment.created_at,
-            processed_at=payment.processed_at,
-        ))
+        self._session.add(PaymentModel(**self._values(payment)))
         # Send INSERT to PostgreSQL; commit/rollback belongs to the caller.
         await self._session.flush()
+
+    async def add_if_absent(self, payment: Payment) -> bool:
+        statement = (
+            insert(PaymentModel)
+            .values(**self._values(payment))
+            .on_conflict_do_nothing(constraint="uq_payments_idempotency_key")
+            .returning(PaymentModel.id)
+        )
+        return await self._session.scalar(statement) is not None
+
+    @staticmethod
+    def _values(payment: Payment) -> dict[str, Any]:
+        return {
+            "id": payment.id,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "description": payment.description,
+            "metadata_": deepcopy(payment.metadata),
+            "status": payment.status,
+            "idempotency_key": payment.idempotency_key,
+            "webhook_url": payment.webhook_url,
+            "created_at": payment.created_at,
+            "processed_at": payment.processed_at,
+        }
 
     async def get_by_id(self, payment_id: UUID) -> Payment | None:
         row = await self._session.get(PaymentModel, payment_id)
@@ -55,3 +70,17 @@ class SQLAlchemyPaymentRepository(PaymentRepository):
             created_at=row.created_at,
             processed_at=row.processed_at,
         )
+
+
+class SQLAlchemyOutboxRepository(OutboxRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add_payment_created(self, payment: Payment) -> None:
+        self._session.add(OutboxModel(
+            payment_id=payment.id,
+            event_type="payments.new",
+            payload={"payment_id": str(payment.id)},
+            created_at=payment.created_at,
+        ))
+        await self._session.flush()
