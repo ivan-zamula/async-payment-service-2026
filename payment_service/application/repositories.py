@@ -3,6 +3,7 @@
 from typing import Protocol
 from uuid import UUID
 
+from payment_service.application.events import OutboxEvent
 from payment_service.domain.entities import Payment
 
 
@@ -29,4 +30,16 @@ class PaymentRepository(Protocol):
 class OutboxRepository(Protocol):
     async def add_payment_created(self, payment: Payment) -> None:
         """Stage a payments.new event in the current transaction without committing."""
+        ...
+
+    async def get_next_unpublished(self) -> OutboxEvent | None:
+        """Lock one pending event until transaction end, skipping locked events."""
+        ...
+
+    async def record_attempt(self, event_id: UUID) -> None:
+        """Increment publication attempts in the current transaction."""
+        ...
+
+    async def mark_published(self, event_id: UUID) -> None:
+        """Set publication time in the current transaction after acknowledgement."""
         ...

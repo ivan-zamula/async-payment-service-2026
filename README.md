@@ -1,7 +1,7 @@
 # Сервис обработки платежей
 
-Сервис создает и хранит платежи в PostgreSQL вместе с событиями outbox.
-Отправка в RabbitMQ еще не подключена, платежи остаются в статусе `pending`.
+Сервис создает и хранит платежи в PostgreSQL, отправляет события в RabbitMQ.
+Consumer еще не подключен, платежи остаются в статусе `pending`.
 
 ## Запуск
 
@@ -23,13 +23,20 @@ set +a
 ```
 
 ```bash
-docker-compose up -d --wait postgres
+docker-compose up -d --wait postgres rabbitmq
 alembic upgrade head
 uvicorn payment_service.app:create_app --factory
 ```
 
+В другом терминале активируйте `.venv`, загрузите `.env` теми же командами
+и запустите публикатор:
+
+```bash
+python -m payment_service.outbox
+```
+
 Swagger: <http://127.0.0.1:8000/docs>. Подключение к БД задается в `.env`
-через `DATABASE_URL`.
+через `DATABASE_URL`. Для RabbitMQ используется `RABBITMQ_URL`.
 
 ## API
 
@@ -58,17 +65,25 @@ curl -H "X-API-Key: $API_KEY" \
 
 Если платежа нет, сервис вернет `404`. Без правильного API-ключа вернет `401`.
 
+## Публикация outbox
+
+Платеж и событие сохраняются одной транзакцией. Публикатор читает
+события из outbox и отправляет их в `payments.new`. После подтверждения
+RabbitMQ отмечает событие отправленным. При ошибке повторяет отправку.
+Сообщения могут доставляться повторно.
+
 ## Тесты
 
 ```bash
 pytest payment_service/tests -q
 ```
 
-Для интеграционных тестов используйте отдельную БД `payments_test`.
+Для интеграционных тестов используйте отдельную БД `payments_test` и тестовый RabbitMQ.
 Базу создайте заранее, затем примените миграции и запустите тесты:
 
 ```bash
 export TEST_DATABASE_URL='postgresql+asyncpg://payments:payments@127.0.0.1:5432/payments_test'
+export TEST_RABBITMQ_URL='amqp://payments:payments@127.0.0.1:5672/'
 DATABASE_URL="$TEST_DATABASE_URL" alembic upgrade head
 pytest payment_service/tests -q
 ```

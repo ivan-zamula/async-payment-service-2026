@@ -1,13 +1,15 @@
 """SQLAlchemy implementation of the payment repository."""
 
 from copy import deepcopy
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from payment_service.application.events import OutboxEvent
 from payment_service.application.repositories import OutboxRepository, PaymentRepository
 from payment_service.domain.entities import Payment
 from payment_service.infrastructure.models import OutboxModel, PaymentModel
@@ -84,3 +86,27 @@ class SQLAlchemyOutboxRepository(OutboxRepository):
             created_at=payment.created_at,
         ))
         await self._session.flush()
+
+    async def get_next_unpublished(self) -> OutboxEvent | None:
+        row = await self._session.scalar(
+            select(OutboxModel)
+            .where(OutboxModel.published_at.is_(None))
+            .order_by(OutboxModel.created_at, OutboxModel.id)
+            .limit(1)
+            .with_for_update(skip_locked=True),
+        )
+        if row is None:
+            return None
+        return OutboxEvent(id=row.id, event_type=row.event_type, payload=deepcopy(row.payload))
+
+    async def record_attempt(self, event_id: UUID) -> None:
+        await self._session.execute(
+            update(OutboxModel).where(OutboxModel.id == event_id)
+            .values(attempts=OutboxModel.attempts + 1),
+        )
+
+    async def mark_published(self, event_id: UUID) -> None:
+        await self._session.execute(
+            update(OutboxModel).where(OutboxModel.id == event_id)
+            .values(published_at=datetime.now()),
+        )
