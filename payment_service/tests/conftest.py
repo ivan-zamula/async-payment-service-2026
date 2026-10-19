@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 
@@ -7,3 +9,13 @@ def database_environment(monkeypatch):
     monkeypatch.setenv(
         "DATABASE_URL", "postgresql+asyncpg://payments:payments@127.0.0.1:5432/payments",
     )
+
+
+@pytest.fixture
+def database_url(monkeypatch):
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set TEST_DATABASE_URL to a migrated test PostgreSQL database")
+    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("API_KEY", "test-api-key")
+    return url

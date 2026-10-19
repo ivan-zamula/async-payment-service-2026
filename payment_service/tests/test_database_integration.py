@@ -1,7 +1,6 @@
 """Run against a migrated test database selected with TEST_DATABASE_URL."""
 
 import asyncio
-import os
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from typing import Annotated
@@ -20,16 +19,6 @@ from payment_service.controllers.dependencies import get_session
 from payment_service.domain.entities import Currency
 from payment_service.infrastructure.database import connect_database
 from payment_service.infrastructure.models import OutboxModel, PaymentModel
-
-
-@pytest.fixture
-def database_url(monkeypatch):
-    url = os.environ.get("TEST_DATABASE_URL")
-    if not url:
-        pytest.skip("Set TEST_DATABASE_URL to a migrated test PostgreSQL database")
-    monkeypatch.setenv("DATABASE_URL", url)
-    monkeypatch.setenv("API_KEY", "test-api-key")
-    return url
 
 
 def test_app_lifespan_provides_independent_request_sessions(database_url):
