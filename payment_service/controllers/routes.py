@@ -3,9 +3,10 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, status
+from fastapi import APIRouter, Depends, Header, status
 
 from payment_service.application import handlers
+from payment_service.controllers.auth import verify_api_key
 from payment_service.controllers.schemas import PaymentCreate, PaymentCreated, PaymentRead
 from payment_service.domain.entities import Payment
 
@@ -13,11 +14,13 @@ from payment_service.domain.entities import Payment
 router = APIRouter(
     prefix="/payments",
     tags=["payments"],
-    responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Handler is not implemented"}},
+    dependencies=[Depends(verify_api_key)],
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Invalid or missing API key"},
+        status.HTTP_501_NOT_IMPLEMENTED: {"description": "Handler is not implemented"},
+    },
 )
 
-# The header is declared now; checking its configured value is a separate step.
-ApiKey = Annotated[str, Header(alias="X-API-Key", min_length=1)]
 IdempotencyKey = Annotated[
     str,
     Header(alias="Idempotency-Key", min_length=1, max_length=255, pattern=r"\S"),
@@ -28,7 +31,6 @@ IdempotencyKey = Annotated[
 async def create_payment(
     payload: PaymentCreate,
     idempotency_key: IdempotencyKey,
-    api_key: ApiKey,
 ) -> Payment:
     payment = Payment(
         amount=payload.amount,
@@ -42,5 +44,5 @@ async def create_payment(
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)
-async def get_payment(payment_id: UUID, api_key: ApiKey) -> Payment:
+async def get_payment(payment_id: UUID) -> Payment:
     return await handlers.get_payment(payment_id)
