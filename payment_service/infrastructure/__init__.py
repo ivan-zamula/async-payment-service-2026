@@ -1,0 +1,1 @@
+"""Persistence and integration adapters."""
