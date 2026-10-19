@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import SecretStr
 
+from payment_service.application.errors import PaymentNotFoundError
 from payment_service.controllers.routes import router
 from payment_service.infrastructure.database import connect_database, get_database_url
 
@@ -28,6 +29,13 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Payment processing service", lifespan=lifespan)
     app.state.api_key = SecretStr(api_key)
     app.include_router(router, prefix="/api/v1")
+
+    @app.exception_handler(PaymentNotFoundError)
+    async def payment_not_found(request: Request, error: PaymentNotFoundError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": "Payment not found"},
+        )
 
     @app.exception_handler(NotImplementedError)
     async def not_implemented(request: Request, error: NotImplementedError) -> JSONResponse:

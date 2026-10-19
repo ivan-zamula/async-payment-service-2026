@@ -6,7 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, status
 
 from payment_service.application import handlers
+from payment_service.application.repositories import PaymentRepository
 from payment_service.controllers.auth import verify_api_key
+from payment_service.controllers.dependencies import get_payment_repository
 from payment_service.controllers.schemas import PaymentCreate, PaymentCreated, PaymentRead
 from payment_service.domain.entities import Payment
 
@@ -17,7 +19,6 @@ router = APIRouter(
     dependencies=[Depends(verify_api_key)],
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": "Invalid or missing API key"},
-        status.HTTP_501_NOT_IMPLEMENTED: {"description": "Handler is not implemented"},
     },
 )
 
@@ -27,7 +28,10 @@ IdempotencyKey = Annotated[
 ]
 
 
-@router.post("", response_model=PaymentCreated, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "", response_model=PaymentCreated, status_code=status.HTTP_202_ACCEPTED,
+    responses={status.HTTP_501_NOT_IMPLEMENTED: {"description": "Handler is not implemented"}},
+)
 async def create_payment(
     payload: PaymentCreate,
     idempotency_key: IdempotencyKey,
@@ -43,6 +47,12 @@ async def create_payment(
     return await handlers.create_payment(payment)
 
 
-@router.get("/{payment_id}", response_model=PaymentRead)
-async def get_payment(payment_id: UUID) -> Payment:
-    return await handlers.get_payment(payment_id)
+@router.get(
+    "/{payment_id}", response_model=PaymentRead,
+    responses={status.HTTP_404_NOT_FOUND: {"description": "Payment not found"}},
+)
+async def get_payment(
+    payment_id: UUID,
+    repository: Annotated[PaymentRepository, Depends(get_payment_repository)],
+) -> Payment:
+    return await handlers.get_payment(payment_id, repository)
