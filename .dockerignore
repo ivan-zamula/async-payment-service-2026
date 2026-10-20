@@ -1,0 +1,10 @@
+**
+!requirements.txt
+!alembic.ini
+!migrations/
+!migrations/**
+!payment_service/
+!payment_service/**
+**/__pycache__/
+**/*.py[cod]
+payment_service/tests/

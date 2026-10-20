@@ -5,48 +5,44 @@
 
 ## Запуск
 
-Нужны Python 3.11+ и Docker Compose v2+ с командой `docker-compose`.
+Нужны Docker и Docker Compose v2+ с командой `docker-compose`.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Укажите свой `API_KEY` в `.env` и загрузите переменные:
+Укажите свой `API_KEY` в `.env`, затем запустите сервис:
+
+```bash
+docker-compose up -d --build --wait --wait-timeout 120
+```
+
+API: <http://127.0.0.1:8000>, Swagger: <http://127.0.0.1:8000/docs>.
+Порты можно изменить в `.env`.
+
+Compose запускает PostgreSQL, RabbitMQ, API, публикатор и consumer.
+Миграции применяются автоматически перед запуском приложения.
+
+Логи и остановка:
+
+```bash
+docker-compose logs -f api outbox consumer
+docker-compose down
+```
+
+Данные сохраняются в томах. `docker-compose down --volumes` удаляет их.
+
+## API
+
+Для запросов нужен заголовок `X-API-Key`.
+
+Перед примерами загрузите ключ из `.env` в текущий терминал:
 
 ```bash
 set -a
 source .env
 set +a
 ```
-
-```bash
-docker-compose up -d --wait postgres rabbitmq
-alembic upgrade head
-uvicorn payment_service.app:create_app --factory
-```
-
-В другом терминале активируйте `.venv`, загрузите `.env` теми же командами
-и запустите публикатор:
-
-```bash
-python -m payment_service.outbox
-```
-
-Consumer запустите в отдельном терминале с тем же окружением:
-
-```bash
-python -m payment_service.consumer
-```
-
-Swagger: <http://127.0.0.1:8000/docs>. Подключение к БД задается в `.env`
-через `DATABASE_URL`. Для RabbitMQ используется `RABBITMQ_URL`.
-
-## API
-
-Для запросов нужен заголовок `X-API-Key`.
 
 Создание платежа:
 
@@ -94,7 +90,12 @@ Webhook может прийти повторно. Для защиты от ду�
 
 ## Тесты
 
+Нужен Python 3.11+.
+
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
 pytest payment_service/tests -q
 ```
 
