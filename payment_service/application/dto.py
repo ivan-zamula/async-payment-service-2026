@@ -1,5 +1,3 @@
-"""Internal payment processing state, separate from the public payment entity."""
-
 from dataclasses import dataclass
 from datetime import datetime
 

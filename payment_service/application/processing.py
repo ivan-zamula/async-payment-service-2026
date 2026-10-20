@@ -1,5 +1,3 @@
-"""Process a payment once and retry notification without repeating the gateway."""
-
 import logging
 from dataclasses import dataclass
 from enum import StrEnum

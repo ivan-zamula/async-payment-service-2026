@@ -1,5 +1,3 @@
-"""Confirmed, persistent RabbitMQ publication through FastStream."""
-
 import asyncio
 import os
 from typing import Any

@@ -1,5 +1,3 @@
-"""Run against a migrated test database selected with TEST_DATABASE_URL."""
-
 import asyncio
 from contextlib import asynccontextmanager
 from decimal import Decimal

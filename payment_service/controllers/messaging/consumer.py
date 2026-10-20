@@ -1,5 +1,3 @@
-"""One consumer owns processing, notification, retry and dead-letter delivery."""
-
 import asyncio
 import hashlib
 import logging

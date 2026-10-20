@@ -1,5 +1,3 @@
-"""Static API-key authentication for payment routes."""
-
 from secrets import compare_digest
 from typing import Annotated
 

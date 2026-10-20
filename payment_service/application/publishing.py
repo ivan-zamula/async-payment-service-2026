@@ -1,5 +1,3 @@
-"""Publish one locked outbox event inside a database transaction."""
-
 import logging
 from enum import StrEnum
 from typing import Protocol

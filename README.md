@@ -96,7 +96,7 @@ Webhook может прийти повторно. Для защиты от ду�
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest payment_service/tests -q
+python -m pytest payment_service/tests -q
 ```
 
 Для интеграционных тестов используйте отдельную БД `payments_test` и тестовый RabbitMQ.
@@ -106,7 +106,7 @@ pytest payment_service/tests -q
 export TEST_DATABASE_URL='postgresql+asyncpg://payments:payments@127.0.0.1:5432/payments_test'
 export TEST_RABBITMQ_URL='amqp://payments:payments@127.0.0.1:5672/'
 DATABASE_URL="$TEST_DATABASE_URL" alembic upgrade head
-pytest payment_service/tests -q
+python -m pytest payment_service/tests -q
 ```
 
 Без тестовых подключений интеграционные проверки пропускаются.

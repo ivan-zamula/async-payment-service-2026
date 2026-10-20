@@ -1,5 +1,3 @@
-"""SQLAlchemy implementation of the payment repository."""
-
 from copy import deepcopy
 from datetime import datetime
 from typing import Any
@@ -22,7 +20,6 @@ class SQLAlchemyPaymentRepository(PaymentRepository):
 
     async def add(self, payment: Payment) -> None:
         self._session.add(PaymentModel(**self._values(payment)))
-        # Send INSERT to PostgreSQL; commit/rollback belongs to the caller.
         await self._session.flush()
 
     async def add_if_absent(self, payment: Payment) -> bool:

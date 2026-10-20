@@ -1,5 +1,3 @@
-"""GET payment through the complete HTTP, application and PostgreSQL stack."""
-
 import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal

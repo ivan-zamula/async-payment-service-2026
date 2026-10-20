@@ -1,5 +1,3 @@
-"""Events passed from the outbox repository to the message publisher."""
-
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID

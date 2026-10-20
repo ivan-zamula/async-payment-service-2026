@@ -1,1 +1,0 @@
-"""Asynchronous payment processing service."""

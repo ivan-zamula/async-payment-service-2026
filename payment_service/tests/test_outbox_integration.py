@@ -1,5 +1,3 @@
-"""Outbox transaction checks on PostgreSQL and real RabbitMQ routing checks."""
-
 import asyncio
 import json
 import os

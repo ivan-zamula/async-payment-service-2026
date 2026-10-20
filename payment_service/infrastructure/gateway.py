@@ -1,5 +1,3 @@
-"""Asynchronous mock payment gateway required by the assignment."""
-
 import asyncio
 import random
 

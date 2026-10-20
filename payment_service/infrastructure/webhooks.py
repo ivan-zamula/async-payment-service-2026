@@ -1,5 +1,3 @@
-"""HTTP notification of final payment results."""
-
 import asyncio
 from decimal import Decimal
 from typing import Literal

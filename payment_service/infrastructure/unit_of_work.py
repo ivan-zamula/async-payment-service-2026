@@ -1,5 +1,3 @@
-"""SQLAlchemy transaction boundary for payment creation."""
-
 from types import TracebackType
 from typing import Self
 

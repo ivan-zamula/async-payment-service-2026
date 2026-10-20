@@ -1,5 +1,3 @@
-"""Payment entity and its business rules, independent of frameworks."""
-
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime

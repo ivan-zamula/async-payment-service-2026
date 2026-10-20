@@ -1,5 +1,3 @@
-"""PostgreSQL connection pool and async session factory."""
-
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -31,7 +29,6 @@ async def connect_database(
         isolation_level="READ COMMITTED",
     )
     try:
-        # Fail at startup if PostgreSQL is unavailable.
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
         yield async_sessionmaker(engine, expire_on_commit=False)

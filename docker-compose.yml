@@ -1,6 +1,6 @@
 x-payment-service: &payment-service
   build: .
-  image: basis-mkk-payment:local
+  image: payment-service:local
   restart: unless-stopped
   stop_grace_period: 30s
   environment: &payment-environment

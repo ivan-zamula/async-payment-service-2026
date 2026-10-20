@@ -1,5 +1,3 @@
-"""HTTP routes for payment creation and retrieval."""
-
 from typing import Annotated
 from uuid import UUID
 

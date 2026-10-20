@@ -1,5 +1,3 @@
-"""Request-scoped dependencies for HTTP handlers."""
-
 from collections.abc import AsyncIterator
 from typing import Annotated
 
@@ -13,8 +11,7 @@ from payment_service.infrastructure.unit_of_work import SQLAlchemyUnitOfWork
 
 
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
-    # Closing a session also rolls back any uncommitted transaction.
-    # The application use case will explicitly choose when to commit.
+    # UnitOfWork commits; closing the session rolls back unfinished work.
     async with request.app.state.session_factory() as session:
         yield session
 

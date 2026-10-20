@@ -1,5 +1,3 @@
-"""Pydantic v2 schemas for the payment HTTP contract."""
-
 from decimal import Decimal
 from typing import Annotated, Self
 from uuid import UUID

@@ -1,5 +1,3 @@
-"""Repository contract checks against a migrated PostgreSQL test database."""
-
 import asyncio
 from decimal import Decimal
 from uuid import uuid4

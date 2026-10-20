@@ -1,5 +1,3 @@
-"""Isolated PostgreSQL schema shared by worker integration tests."""
-
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from uuid import uuid4

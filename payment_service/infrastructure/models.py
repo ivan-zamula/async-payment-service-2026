@@ -1,5 +1,3 @@
-"""SQLAlchemy 2.0 models for PostgreSQL; compatible with AsyncSession."""
-
 from datetime import datetime
 from decimal import Decimal
 from typing import Any

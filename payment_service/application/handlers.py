@@ -1,5 +1,3 @@
-"""Payment creation and retrieval scenarios."""
-
 import json
 from uuid import UUID
 

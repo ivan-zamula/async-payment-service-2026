@@ -1,5 +1,3 @@
-"""A transaction shared by payment and outbox repositories."""
-
 from types import TracebackType
 from typing import Protocol, Self
 
