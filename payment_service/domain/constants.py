@@ -1,7 +1,9 @@
-"""Payment amount limits shared by domain validation, API schemas and storage."""
+"""Shared payment amount and processing limits."""
 
 from decimal import Decimal
 
+
+MAX_PROCESSING_FAILURES = 3
 
 MIN_PAYMENT_AMOUNT = Decimal("0")  # Exclusive lower bound.
 MAX_PAYMENT_AMOUNT = Decimal("9999999999999999.99")

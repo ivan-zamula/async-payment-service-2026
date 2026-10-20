@@ -3,7 +3,6 @@
 import asyncio
 import json
 import os
-from contextlib import asynccontextmanager
 from decimal import Decimal
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
@@ -11,37 +10,16 @@ from uuid import UUID, uuid4
 import pytest
 from aio_pika import DeliveryMode
 from faststream.rabbit import RabbitQueue
-from sqlalchemy import event, select, text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy import event, select
 
 from payment_service.application.handlers import create_payment
 from payment_service.application.publishing import EventPublisher, PublicationResult, publish_next_event
 from payment_service.domain.entities import Currency, Payment
 from payment_service.infrastructure.messaging import RabbitMQEventPublisher, create_broker
-from payment_service.infrastructure.models import Base, OutboxModel
+from payment_service.infrastructure.models import OutboxModel
 from payment_service.infrastructure.unit_of_work import SQLAlchemyUnitOfWork
 from payment_service import outbox
-
-
-@asynccontextmanager
-async def isolated_database(url):
-    # Polling must see only this test's events, even in a shared test database.
-    schema = "test_outbox_" + uuid4().hex
-    engine = create_async_engine(
-        url, isolation_level="READ COMMITTED",
-        execution_options={"schema_translate_map": {None: schema}},
-    )
-    try:
-        async with engine.begin() as connection:
-            await connection.execute(text(f'CREATE SCHEMA "{schema}"'))
-            await connection.run_sync(Base.metadata.create_all)
-        yield async_sessionmaker(engine, expire_on_commit=False)
-    finally:
-        try:
-            async with engine.begin() as connection:
-                await connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
-        finally:
-            await engine.dispose()
+from payment_service.tests.helpers import isolated_database
 
 
 async def seed_event(sessions, event_type="payments.new"):

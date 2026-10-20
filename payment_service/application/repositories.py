@@ -3,6 +3,7 @@
 from typing import Protocol
 from uuid import UUID
 
+from payment_service.application.dto import PaymentProcessingState
 from payment_service.application.events import OutboxEvent
 from payment_service.domain.entities import Payment
 
@@ -24,6 +25,23 @@ class PaymentRepository(Protocol):
 
     async def get_by_idempotency_key(self, idempotency_key: str) -> Payment | None:
         """Return a payment by its idempotency key, or None if it does not exist."""
+        ...
+
+    async def get_for_processing(self, payment_id: UUID) -> PaymentProcessingState | None:
+        """Lock the payment and read its durable consumer state."""
+        ...
+
+    async def save_result(self, payment: Payment) -> None:
+        """Save final status and processing time without changing request data."""
+        ...
+
+    async def record_processing_failure(self, payment_id: UUID) -> None:
+        ...
+
+    async def mark_webhook_sent(self, payment_id: UUID) -> None:
+        ...
+
+    async def mark_dead_lettered(self, payment_id: UUID) -> None:
         ...
 
 

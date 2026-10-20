@@ -26,6 +26,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from payment_service.domain.constants import (
     MAX_PAYMENT_AMOUNT,
+    MAX_PROCESSING_FAILURES,
     MIN_PAYMENT_AMOUNT,
     PAYMENT_AMOUNT_PRECISION,
     PAYMENT_AMOUNT_SCALE,
@@ -60,6 +61,18 @@ class PaymentModel(Base):
             "processed_at IS NULL OR processed_at >= created_at",
             name="ck_payments_processing_time",
         ),
+        CheckConstraint(
+            f"processing_failures BETWEEN 0 AND {MAX_PROCESSING_FAILURES}",
+            name="ck_payments_processing_failures",
+        ),
+        CheckConstraint(
+            "webhook_sent_at IS NULL OR status IN ('succeeded', 'failed')",
+            name="ck_payments_webhook_status",
+        ),
+        CheckConstraint(
+            "webhook_sent_at IS NULL OR dead_lettered_at IS NULL",
+            name="ck_payments_delivery_result",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -90,6 +103,11 @@ class PaymentModel(Base):
         DateTime(timezone=False), nullable=False, server_default=func.now(),
     )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    processing_failures: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0",
+    )
+    webhook_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    dead_lettered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
 
 class OutboxModel(Base):

@@ -9,9 +9,10 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from payment_service.application.dto import PaymentProcessingState
 from payment_service.application.events import OutboxEvent
 from payment_service.application.repositories import OutboxRepository, PaymentRepository
-from payment_service.domain.entities import Payment
+from payment_service.domain.entities import Payment, PaymentStatus
 from payment_service.infrastructure.models import OutboxModel, PaymentModel
 
 
@@ -57,6 +58,43 @@ class SQLAlchemyPaymentRepository(PaymentRepository):
             select(PaymentModel).where(PaymentModel.idempotency_key == idempotency_key),
         )
         return self._to_entity(row) if row is not None else None
+
+    async def get_for_processing(self, payment_id: UUID) -> PaymentProcessingState | None:
+        row = await self._session.scalar(
+            select(PaymentModel).where(PaymentModel.id == payment_id)
+            .with_for_update().execution_options(populate_existing=True),
+        )
+        if row is None:
+            return None
+        return PaymentProcessingState(
+            payment=self._to_entity(row), failures=row.processing_failures,
+            webhook_sent_at=row.webhook_sent_at, dead_lettered_at=row.dead_lettered_at,
+        )
+
+    async def save_result(self, payment: Payment) -> None:
+        await self._session.execute(
+            update(PaymentModel)
+            .where(PaymentModel.id == payment.id, PaymentModel.status == PaymentStatus.PENDING)
+            .values(status=payment.status, processed_at=payment.processed_at),
+        )
+
+    async def record_processing_failure(self, payment_id: UUID) -> None:
+        await self._session.execute(
+            update(PaymentModel).where(PaymentModel.id == payment_id)
+            .values(processing_failures=PaymentModel.processing_failures + 1),
+        )
+
+    async def mark_webhook_sent(self, payment_id: UUID) -> None:
+        await self._session.execute(
+            update(PaymentModel).where(PaymentModel.id == payment_id)
+            .values(webhook_sent_at=datetime.now()),
+        )
+
+    async def mark_dead_lettered(self, payment_id: UUID) -> None:
+        await self._session.execute(
+            update(PaymentModel).where(PaymentModel.id == payment_id)
+            .values(dead_lettered_at=datetime.now()),
+        )
 
     @staticmethod
     def _to_entity(row: PaymentModel) -> Payment:
